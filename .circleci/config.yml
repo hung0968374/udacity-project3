@@ -1,0 +1,46 @@
+version: 2.1
+
+jobs:
+  lint-app:
+    docker:
+      - image: circleci/node:16
+    steps:
+      - checkout
+  build-docker:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Build docker container for each microservices
+          command: |
+            echo "---------Installing dependencies----------"
+            curl -fsSl https://deb.nodesource.com/setup_16.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node -v
+            npm -v
+
+            docker build -t udagram-api-feed ./udagram-api-feed
+            docker tag udagram-api-feed quanvt3/udagram-api-feed:v1
+
+            docker build -t udagram-api-user ./udagram-api-user
+            docker tag udagram-api-user quanvt3/udagram-api-user:v1
+
+            docker build -t udagram-frontend ./udagram-frontend
+            docker tag udagram-frontend quanvt3/udagram-frontend:v1
+
+            docker build -t udagram-reverseproxy ./udagram-reverseproxy
+            docker tag udagram-reverseproxy quanvt3/udagram-reverseproxy:v1
+
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+
+            docker push quanvt3/udagram-api-feed:v1
+            docker push quanvt3/udagram-api-user:v1
+            docker push quanvt3/udagram-frontend:v1
+            docker push quanvt3/udagram-reverseproxy:v1
+
+workflows:
+  default:
+    jobs:
+      - lint-app
+      - build-docker:
+          requires: [lint-app]
